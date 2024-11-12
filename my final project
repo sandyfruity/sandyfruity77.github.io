@@ -1,0 +1,740 @@
+BREADTH FIRST SEARCH
+// BreadthFirstSearch.java
+import java.util.Vector;
+public class BreadthFirstSearch extends SearchApplet {
+    public void init() {
+	// Define a test network before calling the super class 'init':
+	addNode("Abuja", 7.0f, 3.0f); //node 2
+	addNode("Lagos", 2.0f, 5.0f);//node 3
+	addNode("Enugu", 7.0f, 8.0f);//node 4
+	addNode("Calabar", 11.0f, 14.0f);//node 5
+	addNode("Sokoto", 15.0f, 2.0f);//node 7
+	addNode("Uyo", 12.0f, 8.0f);//node 8
+	addNode("Borno", 13.0f, 5.0f);//node 9
+                addNode("Rivers", 5.0f, 12.0f);//node 9
+                addNode("Benin", 2.0f, 10.0f);//node 9
+	addLink(0,1);
+	addLink(1,2);
+	addLink(5,3);
+	addLink(0,4);
+	addLink(4,6);
+	addLink(5,6);
+	addLink(3,7);
+	addLink(1,8);
+	addLink(2,7);
+	addLink(7,8);
+	// Now that we have defined the network to search, we
+	// can now call the super class init:
+	super.init();
+    }
+    /** findPath - abstract method in super class */
+    // Breadth first search  algorithm from "Algorithms"
+    public int [] findPath(int node_1, int node_2) { // return an array of node indices
+	System.out.println("Entered BreadthFirstSearch.findPath(" +
+			   node_1 + ", " + node_2 + ")");
+	if (node_1 == node_2)  {
+	    repaintPath(null, 0);
+	    return null;
+	}
+	// data structures for depth first search:
+	boolean [] visitedFlag = new boolean[numNodes];
+	float [] distanceToNode = new float[numNodes];
+	int [] predecessor = new int[numNodes];
+	Queue queue = new Queue(numNodes + 2);
+	// data structures for graphical display (only):
+	int [] display_path = new int[2 * numNodes + 1];
+	int num_display_path = 0;
+	for (int i=0; i<numNodes; i++) {
+	    visitedFlag[i] = false;
+	    distanceToNode[i] = 10000000.0f;
+	    predecessor[i] = -1;
+	}
+	visitedFlag[node_1] = true;
+	distanceToNode[node_1] = 0.0f;
+	queue.enqueue(node_1);
+outer:	while (queue.isEmpty() == false) {
+	    int head = queue.head();
+	    int [] connected = connected_nodes(head);
+	    if (connected != null) {
+		for (int i=0; i<connected.length; i++) {
+		    if (visitedFlag[connected[i]] == false) {
+			distanceToNode[connected[i]] = distanceToNode[head] + 1.0f;
+			predecessor[connected[i]] = head;
+			queue.enqueue(connected[i]);
+			display_path[num_display_path++] = head;
+			display_path[num_display_path++] = connected[i];
+			repaintPath(display_path, num_display_path);
+			if (connected[i] == node_2) break outer; // we are done
+		    }
+		}
+		visitedFlag[head] = true;
+		queue.dequeue(); // ignore return value
+	    }
+	}
+	// now calculate the shortest path from the predecessor array:
+	int [] ret = new int[numNodes + 1];
+	int count = 0;
+	ret[count++] = node_2;
+	for (int i=0; i<numNodes; i++) {
+	    ret[count] = predecessor[ret[count - 1]];
+	    count++;
+	    if (ret[count - 1] == node_1)  break;  // back to starting node
+	}
+	num_display_path = 0;
+	int [] ret2 = new int[count];
+	for (int i=0; i<count; i++) {
+	    ret2[i] = ret[count - 1 - i];
+	    if (i > 0) { // re-calculate the plot display points:
+		display_path[num_display_path++] = ret2[i-1];
+		display_path[num_display_path++] = ret2[i];
+	    }
+	}
+	// now re-calculate the display path points:
+	repaintPath(display_path, num_display_path);
+	return ret2;   
+    }
+    protected class Queue {
+	public Queue(int num) {
+	    queue = new int[num];
+	    head = tail = 0;
+	    len = num;
+	}
+	public Queue() {
+	    this(400);
+	}
+	private int [] queue;
+	int tail, head, len;
+	public void enqueue(int n) {
+	    queue[tail] = n;
+	    if (tail >= (len - 1)) {
+		tail = 0;
+	    } else {
+		tail++;
+	    }
+	}
+	public int dequeue() {
+	    int ret = queue[head];
+	    if (head >= (len - 1)) {
+		head = 0;
+	    } else {
+		head++;
+	    }
+	    return ret;
+	}
+	public boolean isEmpty() {
+	    return head == (tail + 1);
+	}
+	public int head() {
+	    return queue[head];
+	}	
+    }
+    protected int [] connected_nodes(int node) {
+	int [] ret = new int[SearchApplet.MAX];
+	int num = 0;
+	for (int n=0; n<numNodes; n++) {
+	    boolean connected = false;
+	    // See if there is a link between node 'node' and 'n':
+	    for (int i=0; i<numLinks; i++) {
+		if (link_1[i] == node) {
+		    if (link_2[i] == n) {
+			connected = true;
+			break;
+		    }
+		}
+		if (link_2[i] == node) {
+		    if (link_1[i] == n) {
+			connected = true;
+			break;
+		    }
+		}
+	    }
+	    if (connected) {
+		ret[num++] = n;
+	    }
+	}
+	if (num == 0)  return null;
+	int [] ret2 = new int[num];
+	for (int i=0; i<num; i++) {
+	    ret2[i] = ret[i];
+	}
+	return ret2;
+    }
+    private int [] path = new int[SearchApplet.MAX];
+    private int num_path = 0;
+private int [] copy_path(int [] path, int num_to_copy) {
+	int [] ret = new int[SearchApplet.MAX];
+	for (int i=0; i<num_to_copy; i++) {
+	    ret[i] = path[i];
+	}
+	return ret;
+    }}
+DEPTH FIRST SEARCH
+// DepthFirstSearch.java
+import java.util.Vector;
+public class DepthFirstSearch extends SearchApplet {
+    public void init() {
+        // Define a test network before calling the super class 'init':
+        addNode("Abuja", 7.0f, 3.0f); //node 2
+        addNode("Lagos", 2.0f, 5.0f);//node 3
+        addNode("Enugu", 7.0f, 8.0f);//node 4
+        addNode("Calabar", 11.0f, 14.0f);//node 5
+        addNode("Sokoto", 15.0f, 2.0f);//node 7
+        addNode("Uyo", 12.0f, 8.0f);//node 8
+        addNode("Borno", 13.0f, 5.0f);//node 9
+        addNode("Rivers", 5.0f, 12.0f);//node 9
+        addNode("Benin", 2.0f, 10.0f);//node 9
+        addLink(0, 1);
+        addLink(1, 2);
+        addLink(5, 3);
+        addLink(0, 4);
+        addLink(4, 6);
+        addLink(5, 6);
+        addLink(3, 7);
+        addLink(1, 8);
+        addLink(2, 7);
+        addLink(7, 8);
+        // Now that we have defined the network to search, we
+        // can now call the super class init:
+        super.init();
+    }
+    /**
+     * findPath - abstract method in super class
+     */
+    public int[] findPath(int node_1, int node_2) { // return an array of node indices
+        System.out.println("Entered DepthFirstSearch.findPath("
+                + node_1 + ", " + node_2 + ")");
+        num_path = 1;
+        path[0] = node_1; // the starting node
+        return findPathHelper(path, 1, node_2);
+    }
+public int[] findPathHelper(int[] path, int num_path, int goal_node) {
+        System.out.println("Entered DepthFirstSearch.findPathHelper(...,"
+                + num_path + ", " + goal_node + ")");
+        System.out.println("ici1");
+        repaintPath(path, num_path);
+        if (goal_node == path[num_path - 1]) {
+            int[] ret = new int[num_path];
+            for (int i = 0; i < num_path; i++) {
+                ret[i] = path[i];
+            }
+            System.out.println("ici2");
+            repaintPath(ret);
+            return ret;  // we are done!
+        }
+        int[] new_nodes = connected_nodes(path, num_path);
+        if (new_nodes != null) {
+            for (int j = 0; j < new_nodes.length; j++) {
+                int[] new_path = copy_path(path, num_path);
+                new_path[num_path] = new_nodes[j];
+                int[] test = findPathHelper(new_path, num_path + 1, goal_node);
+                if (test != null) {
+                    if (test[test.length - 1] == goal_node) {
+                        //System.out.println("ici3");
+                        //repaintPath(test);
+                        return test;
+                    }}}}
+        return null;
+    }
+    public void repaintPath(int[] path, int num) {
+        int[] path2 = new int[2 * num + 1];
+        int count = 0;
+        for (int i = 0; i < (num - 1); i++) {
+            path2[count++] = path[i];
+            path2[count++] = path[i + 1];
+        }
+        super.repaintPath(path2, count);
+    }
+protected int[] connected_nodes(int[] path, int num_path) {
+        // find all nodes connected to the last node on 'path'
+        // that are not already on 'path'
+        int[] ret = new int[SearchApplet.MAX];
+        int num = 0;
+        int last_node = path[num_path - 1];
+        for (int n = 0; n < numNodes; n++) {
+            // see if node 'n' is already on 'path':
+            boolean keep = true;
+            for (int i = 0; i < num_path; i++) {
+                if (n == path[i]) {
+                    keep = false;
+                    break;
+                }
+            }
+            boolean connected = false;
+            if (keep) {
+                // now see if there is a link between node 'last_node' and 'n':
+                for (int i = 0; i < numLinks; i++) {
+                    if (link_1[i] == last_node) {
+                        if (link_2[i] == n) {
+                            connected = true;
+                            break;
+                        }
+                    }
+                    if (link_2[i] == last_node) {
+                        if (link_1[i] == n) {
+                            connected = true;
+                            break;
+                        }}}
+                if (connected) {
+                    ret[num++] = n;
+                }}
+        if (num == 0) {
+            return null;
+        }
+        int[] ret2 = new int[num];
+        for (int i = 0; i < num; i++) {
+            ret2[i] = ret[i];
+        }
+        return ret2;
+    }
+    private int[] path = new int[SearchApplet.MAX];
+    private int num_path = 0;
+    private int[] copy_path(int[] path, int num_to_copy) {
+        int[] ret = new int[SearchApplet.MAX];
+        for (int i = 0; i < num_to_copy; i++) {
+            ret[i] = path[i];
+        }
+        return ret;
+    }}
+
+HILL CLIMBING SEARCH
+// HillClimbingSearch.java
+import java.util.Vector;
+public class HillClimbingSearch extends SearchApplet {
+    public void init() {
+        // Define a test network before calling the super class 'init':
+        addNode("Abuja", 7.0f, 3.0f); //node 2
+        addNode("Lagos", 2.0f, 5.0f);//node 3
+        addNode("Enugu", 7.0f, 8.0f);//node 4
+        addNode("Calabar", 11.0f, 14.0f);//node 5
+        addNode("Sokoto", 15.0f, 2.0f);//node 7
+        addNode("Uyo", 12.0f, 8.0f);//node 8
+        addNode("Borno", 13.0f, 5.0f);//node 9
+        addNode("Rivers", 5.0f, 12.0f);//node 9
+        addNode("Benin", 2.0f, 10.0f);//node 9
+        addLink(0, 1);
+        addLink(1, 2);
+        addLink(5, 3);
+        addLink(0, 4);
+        addLink(4, 6);
+        addLink(5, 6);
+        addLink(3, 7);
+        addLink(1, 8);
+        addLink(2, 7);
+        addLink(7, 8);
+        // Now that we have defined the network to search, we
+        // can now call the super class init:
+        super.init();
+    }
+    /**
+     * findPath - abstract method in super class
+     */
+    public int[] findPath(int node_1, int node_2) { // return an array of node indices
+        System.out.println("Entered HillClimbingSearch.findPath("
+                + node_1 + ", " + node_2 + ")");
+        num_path = 1;
+        path[0] = node_1; // the starting node
+        return findPathHelper(path, 1, node_2);
+    }
+public int[] findPathHelper(int[] path, int num_path, int goal_node) {
+        System.out.println("Entered HillClimbingSearch.findPathHelper(...,"
+                + num_path + ", " + goal_node + ")");
+        System.out.println("ici1");
+        repaintPath(path, num_path);
+        if (goal_node == path[num_path - 1]) {
+            int[] ret = new int[num_path];
+            for (int i = 0; i < num_path; i++) {
+                ret[i] = path[i];
+            }
+            System.out.println("ici2");
+            repaintPath(ret);
+            return ret;  // we are done!
+        }
+        int[] new_nodes = connected_nodes(path, num_path);
+        if (new_nodes != null) {
+            for (int j = 0; j < new_nodes.length; j++) {
+                int[] new_path = copy_path(path, num_path);
+                new_path[num_path] = new_nodes[j];
+                int[] test = findPathHelper(new_path, num_path + 1, goal_node);
+                if (test != null) {
+                    if (test[test.length - 1] == goal_node) {
+                        //System.out.println("ici3");
+                        //repaintPath(test);
+                        return test;
+          }}}}
+        return null;
+    }
+    public void repaintPath(int[] path, int num) {
+        int[] path2 = new int[2 * num + 1];
+        int count = 0;
+        for (int i = 0; i < (num - 1); i++) {
+            path2[count++] = path[i];
+            path2[count++] = path[i + 1];
+        }
+        super.repaintPath(path2, count);
+    }
+protected int[] connected_nodes(int[] path, int num_path) {
+        // find all nodes connected to the last node on 'path'
+        // that are not already on 'path'
+        int[] ret = new int[SearchApplet.MAX];
+        int num = 0;
+        int last_node = path[num_path - 1];
+        for (int n = 0; n < numNodes; n++) {
+            // see if node 'n' is already on 'path':
+            boolean keep = true;
+            for (int i = 0; i < num_path; i++) {
+                if (n == path[i]) {
+                    keep = false;
+                    break;
+                }
+            }
+            boolean connected = false;
+            if (keep) {
+                // now see if there is a link between node 'last_node' and 'n':
+                for (int i = 0; i < numLinks; i++) {
+                    if (link_1[i] == last_node) {
+                        if (link_2[i] == n) {
+                            connected = true;
+                            break;
+                        }
+                    }
+                    if (link_2[i] == last_node) {
+                        if (link_1[i] == n) {
+                            connected = true;
+                            break;
+                        }}}
+                if (connected) {
+                    ret[num++] = n;
+                }}}
+        if (num == 0) {
+            return null;
+        }
+        int[] ret2 = new int[num];
+        for (int i = 0; i < num; i++) {
+            ret2[i] = ret[i];
+        }
+        return ret2;
+    }
+    private int[] path = new int[SearchApplet.MAX];
+    private int num_path = 0;
+private int[] copy_path(int[] path, int num_to_copy) {
+        int[] ret = new int[SearchApplet.MAX];
+        for (int i = 0; i < num_to_copy; i++) {
+            ret[i] = path[i];
+        }
+        return ret;
+    }}
+
+ROUTE MATRIX
+/*
+ * RoutesMatrix.java
+ *
+ *
+ * This class defines all the distances between the cities in the problem.
+ * For two cities, x and y, the both distances x to y and y to x remain the same.
+ */
+package travelingsalesman;
+import java.util.Random;
+/**
+ *
+ * @Acha Peter
+ */
+public class RoutesMatrix {
+private int[][] theMatrix;
+    private int cities;
+    // all the distance values will be in a Uniform(MAXDISTANCE)
+    private int MAXDISTANCE = 100;
+
+    /** Creates a new instance of RoutesMatrix
+     */
+    public RoutesMatrix(int cities) {
+theMatrix = new int[cities][cities];
+        this.cities = cities;
+// fill the matrix with random values
+        // a new random generator (seed based on the current time)
+        Random generator = new Random();
+     for (int i=0; i<cities; i++) {
+            for (int j=i; j<cities; j++) {
+                if (i == j)
+                    theMatrix[i][j] = 0;
+                else {
+                    theMatrix[i][j] = generator.nextInt(MAXDISTANCE);
+                    theMatrix[j][i] = theMatrix[i][j];
+                }
+            }
+        }
+    }
+/**
+     * returns the number of cities
+     */
+    public int getCitiesCount() {
+    return cities;
+    }
+/**
+     * gets the cost of going from city "a" to city "b"
+     */
+    public int getCost(int a, int b) {
+    return theMatrix[a][b];
+    }
+/**
+     * sets the cost of going from city "a" to city "b"
+     */
+    public void setCost(int a, int b, int cost) {
+
+        theMatrix[a][b] = cost;
+    }
+/**
+     * gets the array of costs as an Object[][] array.
+     */
+    public Object[][] getCosts () {
+    Object [][] array = new Object[cities][cities];
+        for (int i=0; i<cities; i++){
+            for (int j=0; j<cities; j++){
+                array[i][j] = theMatrix[i][j];
+            }
+        }
+        return array;
+    }
+/**
+     * gets the cities in an Object[] array.
+     */
+    public Object[] getCities () {
+    Object[] array = new Object[cities];
+        for (int i=0; i<cities; i++) {
+            array[i] = i;
+        }
+        return array;
+    }
+/**
+     * gets the maximum distance between two cities.
+     */
+    public int getMaxDistance() {
+        return MAXDISTANCE;
+    }
+ public String toString() {
+    String str = new String();
+        for (int i=0; i<cities; i++) {
+            for (int j=0; j<cities; j++) {
+                if (j == cities - 1)
+                    str += theMatrix[i][j] + "\n";
+                else
+                    str += theMatrix[i][j] + ", ";
+            }
+        }
+        return str;
+    }}
+SEARCH APPLET
+// SearchApplet.java
+//
+// This class is an abstract class for defining search
+// algorithm classes.
+//
+//
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Vector;
+abstract public class SearchApplet extends java.applet.Applet {
+    public void init() {
+	String width = getParameter("pwidth");
+	if (width == null) {
+	    xSizePixels = 80;
+	} else {
+	    xSizePixels = Integer.valueOf(width).intValue();
+	}
+	String height = getParameter("pheight");
+	if (height == null) {
+	    ySizePixels = 80;
+	} else {
+	    ySizePixels = Integer.valueOf(height).intValue();
+	}
+	System.out.println("width=" + xSizePixels + ", height=" + ySizePixels);
+	setLayout(null);
+	startChoice = new Choice();
+	goalChoice  = new Choice();
+	for (int i=0; i<numNodes; i++) {
+	    startChoice.add(nodeNames[i]);
+	    goalChoice.add(nodeNames[i]);
+	}
+	startChoice.select(0);
+	goalChoice.select(numNodes - 1);
+	Label l1 = new Label("Starting node:");
+	Label l2 = new Label("Goal node:");
+	l1.setBounds(5, 10, 90, 24);
+	startChoice.setBounds(100, 10, 50, 30);
+	l2.setBounds(5, 50, 90, 24);
+	goalChoice.setBounds(100, 50, 50, 30);
+	timeDelayChoice = new Choice();
+	timeDelayChoice.add("No plot time delay");
+	timeDelayChoice.add("Plot time delay");
+	timeDelayChoice.setBounds(160, 10, 90, 24);
+	timeDelayChoice.select(1);
+	add(l1); add(l2); add(startChoice); add(goalChoice); add(timeDelayChoice);
+	Button b = new Button("Run");
+	b.setBounds(160, 50, 90, 32);
+	add(b);
+	b.addMouseListener(new java.awt.event.MouseAdapter()
+			   {
+			       public void mouseClicked(MouseEvent me) {
+				   int i1 = startChoice.getSelectedIndex();
+				   int i2 = goalChoice.getSelectedIndex();
+				   startNodeIndex = i1;
+				   goalNodeIndex = i2;
+				   System.out.println("mouse clicked " + i1 + " " + i2);
+				   findPath(i1, i2);
+			       }
+			   }
+			   );
+	canvas = new Canvas();
+	//Panel pp = new Panel();
+	add(canvas);
+	canvas.setBounds(5, 80, xSizePixels + 20, ySizePixels + 20);
+	add(canvas);
+	repaintPath(null, 0);
+	setBackground(Color.white);
+    }
+    protected Choice startChoice, goalChoice, timeDelayChoice;
+    private Canvas canvas;
+    private int goalNodeIndex = -1, startNodeIndex = -1;
+    public void repaintPath(int [] path, int num) {
+	System.out.print("repaintPath(");
+	boolean time_delay = timeDelayChoice.getSelectedIndex() == 1;
+	for (int i=0; i<num; i++) {
+	    System.out.print(path[i]);
+	    if (i < (num - 1)) System.out.print(", ");
+	}
+	System.out.println(")");
+	Graphics g = canvas.getGraphics();
+	g.setColor(Color.black);
+	float x_scale = (float)xSizePixels / (x_max - x_min);
+	float y_scale = (float)ySizePixels / (y_max - y_min);
+	// start by plotting nodes and links:
+	for (int i=0; i<numLinks; i++) {
+	    int i1 = link_1[i];
+	    int i2 = link_2[i];
+	    int x1 = (int)(node_x[i1] * x_scale);
+	    int x2 = (int)(node_x[i2] * x_scale);
+	    int y1 = (int)(node_y[i1] * y_scale);
+	    int y2 = (int)(node_y[i2] * y_scale);
+	    g.drawLine(x1 + 10, y1 + 10, x2 + 10, y2 + 10);
+	    g.drawLine(x1 + 10, y1 + 11, x2 + 10, y2 + 11);
+	}
+	for (int i=0; i<numNodes; i++) {	
+	    int x1 = (int)(node_x[i] * x_scale);
+	    int y1 = (int)(node_y[i] * y_scale);
+	    if (i == startNodeIndex)     g.setColor(Color.green);
+	    else if (i == goalNodeIndex) g.setColor(Color.blue);
+	    else                         g.setColor(Color.black);
+	    paintNode(g, nodeNames[i], x1 + 10, y1 + 10);
+	}
+	if (path == null)  return;
+	// set line color to red:
+	g.setColor(Color.red);
+	for (int i=0; i<num - 1; i += 2) {
+	    int x1 = (int)(node_x[path[i]] * x_scale);
+	    int x2 = (int)(node_x[path[i+1]] * x_scale);
+	    int y1 = (int)(node_y[path[i]] * y_scale);
+	    int y2 = (int)(node_y[path[i+1]] * y_scale);
+	    g.drawLine(x1 + 10, y1 + 10, x2 + 10, y2 + 10);
+	    g.drawLine(x1 + 10, y1 + 11, x2 + 10, y2 + 11);
+	}
+	if (time_delay) {
+	    try {
+		Thread.sleep(1000);
+	    } catch (Exception e) { }
+	}
+    }
+    public void repaintPath(int [] path) {
+	repaintPath(path, path.length);
+    }
+    protected void paintNode(Graphics g, String name, int x, int y) {
+	int len = name.length() * 10 + 6;
+	int x1 = x - (len / 2);
+	int x2 = x + (len / 2);
+	int y1 = y - 10;
+	int y2 = y + 10;
+	g.setColor(Color.cyan);
+	g.fill3DRect(x1, y1, len, 20, true);
+	g.setColor(Color.black);
+	g.drawString(name, x1 + 4, y2 - 6);
+    }
+    public void paint(Graphics g) {
+	super.paint(g);
+	repaintPath(null, 0);
+    }
+    public void addNode(String name, float x, float y) {
+	System.out.println("Adding node: " + name + ", " + x + ", " + y);
+	nodeNames[numNodes] = name;
+	node_x[numNodes] = x;
+	node_y[numNodes] = y;
+	numNodes++;
+	if (x < x_min) x_min = x;
+	if (x > x_max) x_max = x;
+	if (y < y_min) y_min = y;
+	if (y > y_max) y_max = y;
+    }
+    public String getNodeName(int index) {
+	try {
+	    return nodeNames[index];
+	} catch (Exception e) {
+	    System.out.println("Error in getNodeName: " + e);
+	}
+	return "no name"; // error condition
+    }
+    public float getNodeX(int index) {
+	try {
+	    return node_x[index];
+	} catch (Exception e) {
+	    System.out.println("Error in getNodePosition: " + e);
+	}
+	return 0.0f;  // error condition
+    }
+    public float getNodeY(int index) {
+	try {
+	    return node_y[index];
+	} catch (Exception e) {
+	    System.out.println("Error in getNodePosition: " + e);
+	}
+	return 0.0f;  // error condition
+    }
+    public float getPathLength(int index) { // currently unsued - for adding heuristics
+	return lengths[index];
+    }
+    public void addLink(int node1, int node2) {
+	link_1[numLinks] = node1;
+	link_2[numLinks] = node2;
+	float dist_squared = 
+	    (node_x[node1] - node_x[node2]) * (node_x[node1] - node_x[node2]) +
+	    (node_y[node1] - node_y[node2]) * (node_y[node1] - node_y[node2]);
+	lengths[numLinks] = (float)Math.sqrt(dist_squared);
+	numLinks++;
+    }
+    public void addLink(String name1, String name2) {
+	int index1 = -1, index2 = -1;
+	for (int i=0; i<numNodes; i++) {
+	    if (name1.equals(nodeNames[i])) index1 = i;
+	    if (name2.equals(nodeNames[i])) index2 = i;
+	}
+	if (index1 != -1 && index2 != -1)  addLink(index1, index2);
+    }
+/** findPath - abstract method that is defined in subclasses */
+    abstract public int [] findPath(int node_1, int node_2); // return an array of node indices
+    protected int getNodeIndex(String name) {
+	for (int i=0; i<numNodes; i++) {
+	    if (name.equals(nodeNames[i])) return i;
+	}
+	return -1; // error condition    }
+    final public static int MAX = 50; // max number of nodes and max number of links
+    // for nodes:
+    private String [] nodeNames = new String[MAX];
+    private float [] node_x = new float[MAX];
+    private float [] node_y = new float[MAX];
+    // for links between nodes:
+    protected int [] link_1 = new int[MAX];
+    protected int [] link_2 = new int[MAX];
+    private float [] lengths = new float[MAX];
+    protected int numNodes = 0;
+    protected int numLinks = 0;
+    // For optional display of search progress:
+    private int xSizePixels = 0, ySizePixels = 0;    
+    private float x_min = 0.0f, x_max = 0.1f;
+    private float y_min = 0.0f, y_max = 0.1f;
+}
